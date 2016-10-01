@@ -1,14 +1,41 @@
 <template >
-  <div class="" v-show="logOn">
-    <input type="text" name="name" value="" v-model="name">
-    <button type="button" name="button" @click="setNewAvatar">logOn</button>
+  <div class="logOn" v-show="logOn">
+    <div class="ui left corner labeled input">
+      <input type="text" placeholder="Input You Name" v-model="name">
+      <div class="ui left corner label">
+        <i class="asterisk icon"></i>
+      </div>
+    </div>
+    <div class="ui labeled input">
+      <div class="ui label">
+        http://
+      </div>
+      <input type="text" placeholder="Url: picture" v-model="picture">
+    </div>
+    <button class="ui basic button" @click="setNewAvatar">
+      <i class="icon user"></i>logOn
+    </button>
   </div>
   <div id="app" v-show="!logOn">
-    <div class="avatar" :style="{'background': avatar.color, 'top': avatar.y + 'px', 'left': avatar.x + 'px'}" v-for="avatar in avatars">
-      {{avatar.name}}
-      {{avatar.status}}
+    <div class="avatar" :style="{'top': avatar.y + 'px', 'left': avatar.x + 'px'}" v-for="avatar in avatars">
+      <div class="ui centered card">
+        <div class="image">
+          <img :src="avatar.picture" v-show="avatar.picture">
+        </div>
+        <div class="content">
+          <i class="right floated remove icon" @click="removeAvatar"></i>
+          <a class="header">{{avatar.name}}</a>
+          <div class="description">
+            {{avatar.status}}
+          </div>
+        </div>
+      </div>
     </div>
-    <input type="text" v-model="status" @keydown.enter="editStatus(status)">
+  </div>
+  <div class="status" v-show="!logOn">
+    <input type="text" v-model="status">
+    <button type="button" name="button" @click="editStatus()">Edit Status</button>
+  </div>
   </div>
 </template>
 <script>
@@ -22,9 +49,13 @@ var config = {
   messagingSenderId: '514818084106'
 }
 firebase.initializeApp(config)
+
 var Avatars = firebase.database().ref('avatars')
+window.onbeforeunload = function () {
+  firebase.database().ref('avatars/' + myId).remove()
+}
+var myId = ''
 export default {
-  beforeDestroy () {},
   ready () {
     window.addEventListener('keydown', this.keyDown)
     let vm = this
@@ -53,22 +84,24 @@ export default {
     })
   },
   data () {
-    let r = Math.floor(Math.random() * 255)
-    let g = Math.floor(Math.random() * 255)
-    let b = Math.floor(Math.random() * 255)
+    // let r = Math.floor(Math.random() * 255)
+    // let g = Math.floor(Math.random() * 255)
+    // let b = Math.floor(Math.random() * 255)
     let x = Math.floor(Math.random() * 500)
     let y = 0
     return {
       avatars: [],
       myAvatar: {
-        color: `rgb(${r}, ${g}, ${b})`,
+        // color: `rgb(${r}, ${g}, ${b})`,
         x,
         y,
         name: '',
+        picture: '',
         status: ''
       },
       logOn: true,
       name: '',
+      picture: '',
       status: ''
     }
   },
@@ -78,26 +111,25 @@ export default {
   methods: {
     setNewAvatar: function () {
       this.myAvatar.name = this.name
+      this.myAvatar.picture = this.picture
       this.logOn = false
       this.addAvatar(this.myAvatar)
     },
     addAvatar: function (newAvatar) {
       let result = Avatars.push(newAvatar)
       this.myAvatar.id = result.key
+      myId = this.myAvatar.id
     },
-    editStatus: function (status) {
+    removeAvatar: function () {
+      firebase.database().ref('avatars/' + this.myAvatar.id).remove()
+      this.myAvatar = {}
+    },
+    editStatus: function () {
       var vm = this
+      firebase.database().ref('avatars/' + vm.myAvatar.id).update({
+        status: vm.status
+      })
       vm.status = ''
-      firebase.database().ref('avatars/' + vm.myAvatar.id).update({
-        status: status
-      })
-    },
-    move () {
-      console.log('move')
-      let vm = this
-      firebase.database().ref('avatars/' + vm.myAvatar.id).update({
-        y: vm.myAvatar.y + 10
-      })
     },
     // click evter
     keyDown (event) {
@@ -129,15 +161,25 @@ export default {
 
 <style>
 body {
-  background-color: #69778a
+  background-color: #69778a;
+  width: 700px;
+  overflow: hidden;
 }
 
-#app {}
+.logOn {
+  margin-top: 500px;
+  margin-left: 500px;
+}
+
+.status {
+  margin-top: 500px;
+  margin-left: 500px;
+}
 
 .avatar {
   position: absolute;
-  width: 100px;
-  height:100px;
-  background: #F00;
+  width: 200px;
+  /*height:100px;*/
+  /*background: #F00;*/
 }
 </style>
